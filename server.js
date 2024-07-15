@@ -20,16 +20,38 @@ const {
   syncmails,
   refreshToken,
 } = require("./controllers/outlookController.js");
+
+/**
+ * Create an instance of the Express.js app
+ */
 const app = express();
-// chat socket included
 const server = http.createServer(app);
+// chat socket included
 const configureSockets = require("./sockets/chatSocket"); // Replace with the actual path
 configureSockets(server);
 //
 
+
+/**
+ * Set the port for the server
+ *
+ * @example
+ * process.env.PORT = 5000;
+ */
 connectDb();
 
+/**
+ * Set the port for the server
+ *
+ * @example
+ * process.env.PORT = 5000;
+ */
 const port = process.env.PORT || 5000;
+
+
+/**
+ * Configure Express.js middleware
+ */
 app.use(express.json());
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
@@ -43,7 +65,14 @@ app.use(
 
 app.locals.users = {};
 
-// MSAL config
+/**
+ * Set up MSAL configuration
+ *
+ * @example
+ * process.env.OAUTH_CLIENT_ID = "your_client_id";
+ * process.env.OAUTH_AUTHORITY = "https://login.microsoftonline.com/your_tenant_id";
+ * process.env.OAUTH_CLIENT_SECRET = "your_client_secret";
+ */
 const msalConfig = {
   auth: {
     clientId: process.env.OAUTH_CLIENT_ID || "",
@@ -61,7 +90,9 @@ const msalConfig = {
   },
 };
 
-// Create msal application object
+/**
+ * Create an instance of the MSAL client
+ */
 let msalClient = new msal.ConfidentialClientApplication(msalConfig);
 app.locals.msalClient = msalClient;
 // Flash middleware
@@ -84,7 +115,7 @@ app.use("/login.css", express.static(__dirname + "/views/auth/login.css"));
 app.get("/", validateToken, async (req, res) => {
   const user = req?.user;
   console.log(user);
-  res.render("index", { user: user, msAcc:user?.microsoft_acc });
+  res.render("index", { user: user, msAcc:user?.msAcc });
 });
 app.get("/mails", (req, res) => {
   res.sendFile(path.join(__dirname, ".", "views", "mails.html"));
@@ -111,28 +142,28 @@ app.get("/api/testing", validateToken, (req, res) => {
 });
 
 // Schedule the cron job to run every hour
-// cron.schedule("* * * * *", async () => {
-//   console.log("Running cron job to create or renew subscriptions");
-//   // Get user IDs from app.locals
-//   const msalClient = app.locals.msalClient; // Access the msalClient
-//   const userId = app.locals?.userMsId;
-//   const notificationUrl =
-//     "https://197e-2407-d000-d-e71d-28d7-9e8f-d87b-3536.ngrok-free.app/" +
-//     userId +
-//     "/webhook"; // Your webhook URL
-//   console.log("cron user :", userId);
-//   if (userId) {
-//     try {
-//       await graph.createSubscription(msalClient, userId, notificationUrl);
-//     } catch (error) {
-//       console.error(
-//         `Failed to create or renew subscription for user ${userId}:`,
-//         error
-//       );
-//     }
-//   }
-//   console.log("Cron job completed");
-// });
+cron.schedule("0 * * * *", async () => {
+  console.log("Running cron job to create or renew subscriptions");
+  // Get user IDs from app.locals
+  const msalClient = app.locals.msalClient; // Access the msalClient
+  const userId = app.locals?.userMsId;
+  const notificationUrl =
+    process.env.NOTIFICATION_URL + userId + "/webhook"; // Your webhook URL
+  // console.log("cron user :", userId);
+  // console.log("cron url :", notificationUrl);
+
+  if (userId) {
+    try {
+      await graph.createSubscription(msalClient, userId, notificationUrl);
+    } catch (error) {
+      console.error(
+        `Failed to create or renew subscription for user ${userId}:`,
+        error
+      );
+    }
+  }
+  console.log("Cron job completed");
+});
 
 // app.use(errorHandlor);
 

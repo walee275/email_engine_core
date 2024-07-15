@@ -7,6 +7,27 @@ const graph = require("../graph.js");
 const upload = require("../middleware/uploadFile");
 const { Session } = require("inspector");
 const { refreshToken } = require("../controllers/outlookController");
+
+
+/**
+ * Register a new user
+ * 
+ * @route POST /api/users/register
+ * @access public
+ * 
+ * @param {object} req.body - Request body containing user information
+ * @param {string} req.body.name - User's full name
+ * @param {string} req.body.username - User's username
+ * @param {string} req.body.email - User's email address
+ * @param {string} req.body.password - User's password
+ * 
+ * @returns {object} - JSON response containing access token
+ * @example
+ * {
+ *   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7ImlkIjoiNjIxZmY2MmM1YzA3MjMxIiwibmFtZSI6IkphbmUgRG9lIiwidXNlcm5hbWUiOiJqYW5lZG9lIiwiZW1haWwiOiJqYW5lZG9lQGV4YW1wbGUuY29tIn0sImlhdCI6MTY0NTk3NTk1MiwiZXhwIjoxNjQ1OTgxNTUyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c"
+ * }
+ */
+
 // @desc Register a user
 // @route POST /api/users/register
 // @access public
