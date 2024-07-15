@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Register</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/5.0.0/normalize.min.css">
+  <link rel="stylesheet" href="/login.css">
+
+</head>
+
+<body>
+  <!-- partial:index.partial.html -->
+  <div id="login-form-wrap">
+    <h2>Register</h2>
+    <form id="login-form">
+        <p>
+            <input type="text" id="name" name="name" placeholder="name" required><i
+              class="validation"><span></span><span></span></i>
+          </p>
+          <p>
+            <input type="text" id="username" name="username" placeholder="username" required><i
+              class="validation"><span></span><span></span></i>
+          </p>
+      <p>
+        <input type="email" id="email" name="email" placeholder="email" required><i
+          class="validation"><span></span><span></span></i>
+      </p>
+      <p>
+        <input type="password" id="password" name="password" placeholder="password" required><i
+          class="validation"><span></span><span></span></i>
+      </p>
+      <p>
+        <input type="submit" id="login" value="Login">
+      </p>
+    </form>
+    <div id="create-account-wrap">
+      <p>Already a member? <a href="/auth/login">Login</a>
+      <p>
+    </div><!--create-account-wrap-->
+  </div><!--login-form-wrap-->
+  <!-- partial -->
+
+  <script>
+
+    const loginForm = document.getElementById('login-form');
+
+    loginForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      let name = document.getElementById('name').value;
+      let username = document.getElementById('username').value;
+      let email = document.getElementById('email').value;
+      let password = document.getElementById('password').value;
+
+      let formData = {
+        name: name,
+        username: username,
+        email: email,
+        password: password
+      };
+
+      fetch('http://localhost:3000/auth/register', {
+        method: 'POST',
+        body: JSON.stringify(formData),
+        headers: { "Content-Type": 'application/json' }
+      }).then(function (response) {
+        return response.json();
+      }).then(function (result) {
+        console.log(result);
+        if (result.accessToken) {
+
+          localStorage.setItem('accessToken', JSON.stringify(result.accessToken));
+          window.location.href = 'http://localhost:3000/';
+        }
+      })
+
+    })
+  </script>
+
+</body>
+
+</html>

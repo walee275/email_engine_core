@@ -1,0 +1,97 @@
+<!-- Copyright (c) Microsoft Corporation.
+     Licensed under the MIT License. -->
+
+<!-- <LayoutSnippet> -->
+<h1 class="mb-3"></h1>
+<a href="/" class="btn btn-light btn-sm mb-3">Back</a>
+<table class="table" id="">
+  <thead>
+    <tr>
+      <th scope="col">Sender</th>
+      <th scope="col">Subject</th>
+      <th scope="col">Content</th>
+      <th scope="col">Recipients</th>
+      <th scope="col">Time</th>
+      <th scope="col">Read Status</th>
+    </tr>
+  </thead>
+  <tbody>
+
+  </tbody>
+</table>
+
+
+<table class="table" id="sentTable">
+  <thead>
+    <tr>
+      <th scope="col">Sender</th>
+      <th scope="col">Subject</th>
+      <th scope="col">Content</th>
+      <th scope="col">Recipients</th>
+      <th scope="col">Time</th>
+      <th scope="col">Read Status</th>
+    </tr>
+  </thead>
+  <tbody>
+
+  </tbody>
+</table>
+
+<table class="table" id="inboxTable">
+  <thead>
+    <tr>
+      <th scope="col">Sender</th>
+      <th scope="col">Subject</th>
+      <th scope="col">Content</th>
+      <th scope="col">Recipients</th>
+      <th scope="col">Time</th>
+      <th scope="col">Read Status</th>
+    </tr>
+  </thead>
+  <tbody>
+
+  </tbody>
+</table>
+<script>
+    async function fetchEmails(url, tableId) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+        const data = await response.json();
+        const tableBody = document.getElementById(tableId).querySelector('tbody');
+        tableBody.innerHTML = '';
+
+        data.emails.forEach(email => {
+          const row = document.createElement('tr');
+
+          row.innerHTML = `
+            <td>${email.from.name}</td>
+            <td>${email.subject}</td>
+            <td>${email.bodyPreview}</td>
+            <td>${email.toRecipients.map(recipient => recipient.name).join(', ')}</td>
+            <td>${new Date(email.receivedDateTime).toLocaleString()}</td>
+            <td>${email.isRead ? 'Read' : 'Unread'}</td>
+          `;
+
+          tableBody.appendChild(row);
+        });
+      } catch (error) {
+        console.error('Failed to fetch emails:', error);
+      }
+    }
+
+    function fetchInboxEmails() {
+      fetchEmails('http://localhost:3000/api/users/inbox', 'inboxTable');
+    }
+
+    function fetchSentEmails() {
+      fetchEmails('http://localhost:3000/api/users/sent-box', 'sentTable');
+    }
+
+    // Fetch emails on page load
+    fetchInboxEmails();
+    fetchSentEmails();
+  </script>
+<!-- </LayoutSnippet> -->
