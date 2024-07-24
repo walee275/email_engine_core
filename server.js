@@ -30,6 +30,10 @@ const server = http.createServer(app);
 const configureSockets = require("./sockets/chatSocket"); // Replace with the actual path
 configureSockets(server);
 //
+const io = socketIo(server);
+
+
+app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io/client-dist'));
 
 
 /**
@@ -142,28 +146,28 @@ app.get("/api/testing", validateToken, (req, res) => {
 });
 
 // Schedule the cron job to run every hour
-cron.schedule("0 * * * *", async () => {
-  console.log("Running cron job to create or renew subscriptions");
-  // Get user IDs from app.locals
-  const msalClient = app.locals.msalClient; // Access the msalClient
-  const userId = app.locals?.userMsId;
-  const notificationUrl =
-    process.env.NOTIFICATION_URL + userId + "/webhook"; // Your webhook URL
-  // console.log("cron user :", userId);
-  // console.log("cron url :", notificationUrl);
+// cron.schedule("* * * * *", async () => {
+//   console.log("Running cron job to create or renew subscriptions");
+//   // Get user IDs from app.locals
+//   const msalClient = app.locals.msalClient; // Access the msalClient
+//   const userId = app.locals?.userMsId;
+//   const notificationUrl =
+//     process.env.NOTIFICATION_URL + userId + "/webhook"; // Your webhook URL
+//   // console.log("cron user :", userId);
+//   // console.log("cron url :", notificationUrl);
 
-  if (userId) {
-    try {
-      await graph.createSubscription(msalClient, userId, notificationUrl);
-    } catch (error) {
-      console.error(
-        `Failed to create or renew subscription for user ${userId}:`,
-        error
-      );
-    }
-  }
-  console.log("Cron job completed");
-});
+//   if (userId) {
+//     try {
+//       await graph.createSubscription(msalClient, userId, notificationUrl);
+//     } catch (error) {
+//       console.error(
+//         `Failed to create or renew subscription for user ${userId}:`,
+//         error
+//       );
+//     }
+//   }
+//   console.log("Cron job completed");
+// });
 
 // app.use(errorHandlor);
 

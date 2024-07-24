@@ -1,131 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Email Viewer</title>
-  <!-- Bootstrap CSS -->
-  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    body {
-      padding: 20px;
-    }
-    .card {
-      margin-bottom: 20px;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 8px;
-    }
-    th {
-      background-color: #f2f2f2;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <h1 class="text-center mb-4">Email Viewer</h1>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Email Viewer</title>
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        padding: 20px;
+      }
+      .card {
+        margin-bottom: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        padding: 8px;
+      }
+      th {
+        background-color: #f2f2f2;
+      }
+    </style>
+    <script src="./socket.io/socket.io.js" defer></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="text-center mb-4">Email Viewer</h1>
 
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h2>Inbox</h2>
-        <button class="btn btn-primary" onclick="fetchInboxEmails()">Refresh Inbox</button>
+      <div class="card">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h2>Inbox</h2>
+          <button class="btn btn-primary" onclick="fetchInboxEmails()">
+            Refresh Inbox
+          </button>
+        </div>
+        <div class="card-body">
+          <table class="table table-striped" id="inboxTable">
+            <thead>
+              <tr>
+                <th>Sender</th>
+                <th>Subject</th>
+                <th>Content</th>
+                <th>Recipients</th>
+                <th>Time</th>
+                <th>Read Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Inbox emails will be rendered here -->
+            </tbody>
+          </table>
+        </div>
       </div>
-      <div class="card-body">
-        <table class="table table-striped" id="inboxTable">
-          <thead>
-            <tr>
-              <th>Sender</th>
-              <th>Subject</th>
-              <th>Content</th>
-              <th>Recipients</th>
-              <th>Time</th>
-              <th>Read Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Inbox emails will be rendered here -->
-          </tbody>
-        </table>
+
+      <div class="card">
+        <div
+          class="card-header d-flex justify-content-between align-items-center"
+        >
+          <h2>Sent</h2>
+          <button class="btn btn-primary" onclick="fetchSentEmails()">
+            Refresh Sent
+          </button>
+        </div>
+        <div class="card-body">
+          <table class="table table-striped" id="sentTable">
+            <thead>
+              <tr>
+                <th>Sender</th>
+                <th>Subject</th>
+                <th>Content</th>
+                <th>Recipients</th>
+                <th>Time</th>
+                <th>Read Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Sent emails will be rendered here -->
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h2>Sent</h2>
-        <button class="btn btn-primary" onclick="fetchSentEmails()">Refresh Sent</button>
-      </div>
-      <div class="card-body">
-        <table class="table table-striped" id="sentTable">
-          <thead>
-            <tr>
-              <th>Sender</th>
-              <th>Subject</th>
-              <th>Content</th>
-              <th>Recipients</th>
-              <th>Time</th>
-              <th>Read Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Sent emails will be rendered here -->
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+    <!-- Bootstrap JS, Popper.js, and jQuery -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
 
-  <!-- Bootstrap JS, Popper.js, and jQuery -->
-  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+      const socket = io();
+      let currentUser = {};
+      let accessToken = JSON.parse(localStorage.getItem("accessToken"));
+      // Handle Socket.io events here (e.g., sending/receiving messages)
+      socket.on("newMailRecieved", (message) => {
+        // Handle incoming chat messages
+        // Fetch emails on page load
+        fetchInboxEmails();
+        fetchSentEmails();
+      });
+      async function fetchEmails(url, tableId) {
+        try {
+          const response = await fetch(url);
+          if (!response.ok) {
+            throw new Error("Network response was not ok");
+          }
+          const data = await response.json();
+          const tableBody = document
+            .getElementById(tableId)
+            .querySelector("tbody");
+          tableBody.innerHTML = "";
 
-  <script>
-    async function fetchEmails(url, tableId) {
-      try {
-        const response = await fetch(url);
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const data = await response.json();
-        const tableBody = document.getElementById(tableId).querySelector('tbody');
-        tableBody.innerHTML = '';
+          data.emails.forEach((email) => {
+            const row = document.createElement("tr");
 
-        data.emails.forEach(email => {
-          const row = document.createElement('tr');
-
-          row.innerHTML = `
+            row.innerHTML = `
             <td>${email.from.name}</td>
             <td>${email.subject}</td>
             <td>${email.bodyPreview}</td>
-            <td>${email.toRecipients.map(recipient => recipient.name).join(', ')}</td>
+            <td>${email.toRecipients
+              .map((recipient) => recipient.name)
+              .join(", ")}</td>
             <td>${new Date(email.receivedDateTime).toLocaleString()}</td>
-            <td>${email.isRead ? 'Read' : 'Unread'}</td>
+            <td>${email.isRead ? "Read" : "Unread"}</td>
           `;
 
-          tableBody.appendChild(row);
-        });
-      } catch (error) {
-        console.error('Failed to fetch emails:', error);
+            tableBody.appendChild(row);
+          });
+        } catch (error) {
+          console.error("Failed to fetch emails:", error);
+        }
       }
-    }
 
-    async function fetchInboxEmails() {
-      $('#inboxTable').find('tbody').html('<tr class="text-center text-secondary"><td class="text-center" colspan="6" >Loading...</td></td>');
-      await fetchEmails('http://localhost:3000/api/users/inbox', 'inboxTable');
-    }
+      async function fetchInboxEmails() {
+        $("#inboxTable")
+          .find("tbody")
+          .html(
+            '<tr class="text-center text-secondary"><td class="text-center" colspan="6" >Loading...</td></td>'
+          );
+        await fetchEmails(
+          "http://localhost:3000/api/users/inbox",
+          "inboxTable"
+        );
+      }
 
-    async function fetchSentEmails() {
-      $('#sentTable').find('tbody').html('<tr class="text-center text-secondary"><td class="text-center" colspan="6" >Loading...</td></td>');
-     await fetchEmails('http://localhost:3000/api/users/sent-box', 'sentTable');
-    }
+      async function fetchSentEmails() {
+        $("#sentTable")
+          .find("tbody")
+          .html(
+            '<tr class="text-center text-secondary"><td class="text-center" colspan="6" >Loading...</td></td>'
+          );
+        await fetchEmails(
+          "http://localhost:3000/api/users/sent-box",
+          "sentTable"
+        );
+      }
 
-    // Fetch emails on page load
-    fetchInboxEmails();
-    fetchSentEmails();
-  </script>
-</body>
+      // Fetch emails on page load
+      fetchInboxEmails();
+      fetchSentEmails();
+    </script>
+  </body>
 </html>

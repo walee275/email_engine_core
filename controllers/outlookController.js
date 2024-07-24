@@ -4,13 +4,17 @@ const User = require("../models/userModel");
 const Mailbox = require("../models/mailboxModel");
 const Email = require("../models/emailModel");
 const { access } = require("fs");
+const socketIo = require('socket.io');
 require("../server.js");
 
 // Example handler for handling notifications from Microsoft Graph API
 const handleGraphNotification = async (msalClient, userId, notification) => {
   console.log("Notification user:", userId);
 
+  socketIo.emit('newMailRecieved');
+  
   const { changeType, resource, resourceData } = notification;
+
 
   // let resourceDetails = await graph.getEmailDetails(
   //   msalClient,
