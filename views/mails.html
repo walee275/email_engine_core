@@ -39,6 +39,9 @@
           class="card-header d-flex justify-content-between align-items-center"
         >
           <h2>Inbox</h2>
+          <button class="btn btn-primary" onclick="syncEmails()">
+            Sync mails from outlook
+          </button>
           <button class="btn btn-primary" onclick="fetchInboxEmails()">
             Refresh Inbox
           </button>
@@ -102,6 +105,33 @@
       let currentUser = {};
       let accessToken = JSON.parse(localStorage.getItem("accessToken"));
       // Handle Socket.io events here (e.g., sending/receiving messages)
+
+      async function syncEmails() {
+        let accessToken = JSON.parse(localStorage.getItem("accessToken"));
+
+        const url = "/sync-mails"; // Adjust the URL to your endpoint
+        try {
+          const response = await fetch(url, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          const data = await response.json();
+          if (response.ok) {
+            fetchInboxEmails();
+            fetchSentEmails();
+            console.log("Emails synchronized successfully:", data);
+          } else {
+            console.error("Failed to synchronize emails:", data);
+          }
+        } catch (error) {
+          console.error("Error:", error);
+        }
+      }
+
       socket.on("newMailRecieved", (message) => {
         // Handle incoming chat messages
         // Fetch emails on page load
@@ -109,6 +139,13 @@
         fetchSentEmails();
       });
       async function fetchEmails(url, tableId) {
+        const truncateText = (text, maxLength) => {
+          if (text.length <= maxLength) {
+            return text;
+          }
+          return text.substring(0, maxLength) + "...";
+        };
+
         try {
           const response = await fetch(url);
           if (!response.ok) {
@@ -120,22 +157,32 @@
             .querySelector("tbody");
           tableBody.innerHTML = "";
 
-          data.emails.forEach((email) => {
-            const row = document.createElement("tr");
+          if (data?.emails?.length > 0) {
+            data.emails.forEach((email) => {
+              const row = document.createElement("tr");
 
-            row.innerHTML = `
-            <td>${email.from.name}</td>
-            <td>${email.subject}</td>
-            <td>${email.bodyPreview}</td>
-            <td>${email.toRecipients
-              .map((recipient) => recipient.name)
-              .join(", ")}</td>
-            <td>${new Date(email.receivedDateTime).toLocaleString()}</td>
-            <td>${email.isRead ? "Read" : "Unread"}</td>
-          `;
+              const truncatedBodyPreview = truncateText(email.bodyPreview, 100);
 
-            tableBody.appendChild(row);
-          });
+              row.innerHTML = `
+                <td>${email.from.name}</td>
+                <td>${email.subject}</td>
+                <td>${truncatedBodyPreview}</td>
+                <td>${email.toRecipients
+                  .map((recipient) => recipient.name)
+                  .join(", ")}</td>
+                <td>${new Date(email.receivedDateTime).toLocaleString()}</td>
+                <td>${email.isRead ? "Read" : "Unread"}</td>
+              `;
+
+              tableBody.appendChild(row);
+            });
+          } else {
+            const noEmailsRow = document.createElement("tr");
+            noEmailsRow.innerHTML = `
+              <td colspan="6" style="text-align: center;">No emails found</td>
+            `;
+            tableBody.appendChild(noEmailsRow);
+          }
         } catch (error) {
           console.error("Failed to fetch emails:", error);
         }

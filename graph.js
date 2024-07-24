@@ -196,17 +196,17 @@ module.exports = {
 
   // <Create Sbscriptions>
   createSubscription: async function (msalClient, userId, notificationUrl) {
-    console.log("subscription info: ", msalClient, userId, notificationUrl);
+    // console.log("subscription info: ", msalClient, userId, notificationUrl);
     const client = getAuthenticatedClient(msalClient, userId);
-    console.log("Creating subscription :", client);
+    // console.log("Creating subscription :", client);
     try {
       // Check for existing subscriptions
       const subscriptions = await client.api("/subscriptions").get();
-      console.log("Existing subscriptions:", subscriptions.value);
+      // console.log("Existing subscriptions:", subscriptions.value);
       const currentSubscription = subscriptions.value.find(
         (sub) => sub.resource === "me/messages"
       );
-      console.log("Current subscription:", currentSubscription);
+      // console.log("Current subscription:", currentSubscription);
 
       if (currentSubscription) {
         // Renew subscription if it exists

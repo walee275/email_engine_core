@@ -32,5 +32,13 @@ router.get("/outlook/login", loginWithMs);
 router.get("/callback", msCallback);
 //
 router.post("/logout", validateToken, logout);
-
+router.get('/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      return res.status(500).send('Failed to log out.');
+    }
+    res.clearCookie('connect.sid'); // Cookie name might vary based on your session middleware
+    res.redirect('/'); // Redirect to login page or another page
+  });
+});
 module.exports = router;

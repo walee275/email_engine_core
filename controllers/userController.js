@@ -121,11 +121,14 @@ const getUserInboxMails = asyncHandler(async (req, res) => {
       throw new Error("User not found");
     }
 
-    const mailbox = await Mailbox.findOne({ user_id: user.id, type: 'Inbox' });
+    let mailbox = await Mailbox.findOne({ user_id: user.id, type: 'Inbox' });
 
     if (!mailbox) {
-      res.status(404);
-      throw new Error("Inbox mailbox not found");
+       mailbox = await Mailbox.create({
+        name: "Inbox",
+        type: "Inbox",
+        user_id: user.id,
+      });
     }
 
     const emails = await Email.find({ user_id: user.id, mailbox_id: mailbox._id });
@@ -153,12 +156,15 @@ const getUserSentMails = asyncHandler(async (req, res) => {
       throw new Error("User not found");
     }
 
-    const mailbox = await Mailbox.findOne({ user_id: user.id, type: 'Sent' });
+    let mailbox = await Mailbox.findOne({ user_id: user.id, type: 'Sent' });
 
     if (!mailbox) {
-      res.status(404);
-      throw new Error("Sent mailbox not found");
-    }
+      mailbox = await Mailbox.create({
+       name: "Sent box",
+       type: "Sent",
+       user_id: user.id,
+     });
+   }
 
     const emails = await Email.find({ user_id: user.id, mailbox_id: mailbox._id });
 

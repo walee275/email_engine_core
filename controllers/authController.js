@@ -7,6 +7,7 @@ const graph = require("../graph.js");
 const upload = require("../middleware/uploadFile");
 const { Session } = require("inspector");
 const { refreshToken } = require("../controllers/outlookController");
+const Mailbox = require("../models/mailboxModel");
 
 
 /**
@@ -60,7 +61,16 @@ const register = asyncHandler(async (req, res) => {
     microsoft_acc: {},
     profile_picture: profilePicturePath,
   });
-
+  let inbox = await Mailbox.create({
+    name: "Inbox",
+    type: "Inbox",
+    user_id: user.id,
+  });
+  let sentBox = await Mailbox.create({
+    name: "Sent box",
+    type: "Sent",
+    user_id: user.id,
+  });
   if (user) {
     const accessToken = jwt.sign(
       {

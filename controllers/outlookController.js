@@ -4,17 +4,16 @@ const User = require("../models/userModel");
 const Mailbox = require("../models/mailboxModel");
 const Email = require("../models/emailModel");
 const { access } = require("fs");
-const socketIo = require('socket.io');
+const socketIo = require("socket.io");
 require("../server.js");
 
 // Example handler for handling notifications from Microsoft Graph API
 const handleGraphNotification = async (msalClient, userId, notification) => {
   console.log("Notification user:", userId);
 
-  socketIo.emit('newMailRecieved');
-  
-  const { changeType, resource, resourceData } = notification;
+  socketIo.emit("newMailRecieved");
 
+  const { changeType, resource, resourceData } = notification;
 
   // let resourceDetails = await graph.getEmailDetails(
   //   msalClient,
@@ -87,8 +86,7 @@ const syncmails = asyncHandler(async (req, res) => {
   try {
     console.log("Syncing", req?.user);
 
-
-    console.log("client : ", req.app.locals.msalClient);
+    // console.log("client : ", req.app.locals.msalClient);
     // Fetch emails from Microsoft Graph API
     let emails = await graph.getReceivedEmails(
       req.app.locals.msalClient,
@@ -134,7 +132,7 @@ const syncmails = asyncHandler(async (req, res) => {
       req.user.id
     );
 
-    res.status(200).send({ message: "Emails synchronized successfully" });
+    res.status(200).send({ message: "Emails synchronized successfully", success:true });
   } catch (e) {
     console.error("Failed to acquire token or synchronize emails: ", e);
     res.status(500).send({ error: "Something went wrong" });
@@ -151,91 +149,109 @@ async function refreshToken(req) {
   console.log("Expiry token:", tokenExpiry.getTime() < Date.now());
   const isTokenExpired = tokenExpiry.getTime() < Date.now();
   // if (!tokenExpiry || isTokenExpired) {
-    console.log("refreshToken: ", refreshToken);
-    const tokenRequest = {
-      refreshToken: refreshToken,
-      scopes: scopes.split(","),
-      grant_type: "refresh_token",
-      forceCache: true,
+  console.log("refreshToken: ", refreshToken);
+  const tokenRequest = {
+    refreshToken: refreshToken,
+    scopes: scopes.split(","),
+    grant_type: "refresh_token",
+    forceCache: true,
+  };
+  // console.log("Token request: ", tokenRequest);
+
+  try {
+    const response = await req.app.locals.msalClient.acquireTokenByRefreshToken(
+      tokenRequest
+    );
+    // console.log("Token response: ", response);
+    req.session.tokenCache = JSON.stringify({ account: response?.account });
+    // Serialize the token cache
+    const tokenCache = req.app.locals.msalClient.getTokenCache().serialize();
+    req.session.tokenCache = tokenCache;
+    // console.log("Token cache serialized:", tokenCache);
+
+    const parsedTokenCache = JSON.parse(tokenCache);
+    const accountId = response.account.homeAccountId;
+
+    // Extract tokens
+    const accessTokenEntry = await Object.values(
+      parsedTokenCache.AccessToken
+    ).find((entry) => entry.home_account_id === accountId);
+    const refreshTokenEntry = await Object.values(
+      parsedTokenCache.RefreshToken
+    ).find((entry) => entry.home_account_id === accountId);
+
+    const accessToken = accessTokenEntry?.secret;
+    const refreshToken = refreshTokenEntry?.secret;
+
+    req.app.locals.msAccessToken = accessToken;
+    req.app.locals.msRefreshToken = refreshToken;
+
+    // Save the user's homeAccountId in their session
+    req.session.userId = accountId;
+    req.app.locals.userMsId = accountId;
+
+    // Update the user's token expiry date
+    req.user.msAcc = {
+      refresh_token: refreshToken,
+      token_expiry: response?.expiresOn,
+      access_token: accessToken,
+      time_zone: response.time_zone,
     };
-    // console.log("Token request: ", tokenRequest);
+
+    console.log("refreshed expiry :", response?.expiresOn);
 
     try {
-      const response =
-        await req.app.locals.msalClient.acquireTokenByRefreshToken(
-          tokenRequest
+      // Find the user in the database
+      const user = await User.findById(req.user.id);
+
+      if (user) {
+        // Update the user's Microsoft account information
+        user.microsoft_acc = {
+          microsoft_id: accountId,
+          refresh_token: refreshToken,
+          token_expiry: response?.expiresOn,
+          access_token: accessToken,
+          time_zone: response.time_zone,
+        };
+
+        // Save the updated user document
+        const updatedUser = await user.save();
+
+        // Log the success message
+        console.log(
+          "Token refreshed successfully",
+          updatedUser,
+          req.app.locals.userMsId
         );
-      // console.log("Token response: ", response);
-      req.session.tokenCache = JSON.stringify({ account: response?.account });
-      // Serialize the token cache
-      const tokenCache = req.app.locals.msalClient.getTokenCache().serialize();
-      req.session.tokenCache = tokenCache;
-      // console.log("Token cache serialized:", tokenCache);
-
-      const parsedTokenCache = JSON.parse(tokenCache);
-      const accountId = response.account.homeAccountId;
-
-      // Extract tokens
-      const accessTokenEntry = await Object.values(
-        parsedTokenCache.AccessToken
-      ).find((entry) => entry.home_account_id === accountId);
-      const refreshTokenEntry = await Object.values(
-        parsedTokenCache.RefreshToken
-      ).find((entry) => entry.home_account_id === accountId);
-
-      const accessToken = accessTokenEntry?.secret;
-      const refreshToken = refreshTokenEntry?.secret;
-
-      req.app.locals.msAccessToken = accessToken;
-      req.app.locals.msRefreshToken = refreshToken;
-
-      // Save the user's homeAccountId in their session
-      req.session.userId = accountId;
-      req.app.locals.userMsId = accountId;
-
-      // Update the user's token expiry date
-      req.user.msAcc ={
-        refresh_token: refreshToken,
-        token_expiry: response?.expiresOn,
-        access_token: accessToken,
-        time_zone: response.time_zone
-      };
-
-      console.log('refreshed expiry :', response?.expiresOn);
-
-      try {
-        // Find the user in the database
-        const user = await User.findById(req.user.id);
-      
-        if (user) {
-          // Update the user's Microsoft account information
-          user.microsoft_acc = {
-            microsoft_id: accountId,
-            refresh_token: refreshToken,
-            token_expiry: response?.expiresOn,
-            access_token: accessToken,
-            time_zone: response.time_zone
-          };
-      
-          // Save the updated user document
-          const updatedUser = await user.save();
-          
-          // Log the success message
-          console.log("Token refreshed successfully", updatedUser, req.app.locals.userMsId);
-        } else {
-          console.error("User not found");
-        }
-      } catch (error) {
-        console.error("Error updating user tokens:", error);
+      } else {
+        console.error("User not found");
       }
- 
-
-      console.log("token refreshed successfully", req.app.locals.userMsId);
-      return response;
-    } catch (e) {
-      console.error("Failed to acquire token: ", e);
-      return null;
+    } catch (error) {
+      console.error("Error updating user tokens:", error);
     }
+
+    console.log("token refreshed successfully", req.app.locals.userMsId);
+    const msalClient = req.app.locals.msalClient; // Access the msalClient
+    const userId = req.app.locals?.userMsId;
+    const notificationUrl = process.env.NOTIFICATION_URL + userId + "/webhook"; // Your webhook URL
+    // console.log("cron user :", userId);
+    // console.log("cron url :", notificationUrl);
+
+    if (userId) {
+      try {
+        await graph.createSubscription(msalClient, userId, notificationUrl);
+      } catch (error) {
+        console.error(
+          `Failed to create or renew subscription for user ${userId}:`,
+          error
+        );
+      }
+    }
+    return response;
+  } catch (e) {
+    console.error("Failed to acquire token: ", e);
+    return null;
+  }
   // } else {
   //   return null;
   // }

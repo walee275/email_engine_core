@@ -123,7 +123,6 @@ app.get("/", validateToken, async (req, res) => {
 });
 app.get("/mails", (req, res) => {
   res.sendFile(path.join(__dirname, ".", "views", "mails.html"));
-  // res.render("auth/login.html");
 });
 app.use("/auth", require("./routes/auth"));
 
@@ -138,36 +137,30 @@ app.get("/refresh-token", validateToken, refreshToken);
 //   express.static(__dirname + "/node_modules/socket.io/client-dist")
 // );
 
-// Define the route that you want to protect
-app.get("/api/testing", validateToken, (req, res) => {
-  // This route is only accessible to users with the 'admin' role
-
-  res.json({ message: "Access granted to protected route" });
-});
 
 // Schedule the cron job to run every hour
-// cron.schedule("* * * * *", async () => {
-//   console.log("Running cron job to create or renew subscriptions");
-//   // Get user IDs from app.locals
-//   const msalClient = app.locals.msalClient; // Access the msalClient
-//   const userId = app.locals?.userMsId;
-//   const notificationUrl =
-//     process.env.NOTIFICATION_URL + userId + "/webhook"; // Your webhook URL
-//   // console.log("cron user :", userId);
-//   // console.log("cron url :", notificationUrl);
+cron.schedule("0 * * * *", async () => {
+  console.log("Running cron job to create or renew subscriptions");
+  // Get user IDs from app.locals
+  const msalClient = app.locals.msalClient; // Access the msalClient
+  const userId = app.locals?.userMsId;
+  const notificationUrl =
+    process.env.NOTIFICATION_URL + userId + "/webhook"; // Your webhook URL
+  // console.log("cron user :", userId);
+  // console.log("cron url :", notificationUrl);
 
-//   if (userId) {
-//     try {
-//       await graph.createSubscription(msalClient, userId, notificationUrl);
-//     } catch (error) {
-//       console.error(
-//         `Failed to create or renew subscription for user ${userId}:`,
-//         error
-//       );
-//     }
-//   }
-//   console.log("Cron job completed");
-// });
+  if (userId) {
+    try {
+      await graph.createSubscription(msalClient, userId, notificationUrl);
+    } catch (error) {
+      console.error(
+        `Failed to create or renew subscription for user ${userId}:`,
+        error
+      );
+    }
+  }
+  console.log("Cron job completed");
+});
 
 // app.use(errorHandlor);
 

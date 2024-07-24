@@ -7,7 +7,7 @@
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
-  "author": "waleed khan",
+  "author": "Muhammad Waleed Khan",
   "license": "ISC",
   "dependencies": {
     "@azure/msal-node": "^2.9.2",
