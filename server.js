@@ -1,6 +1,5 @@
 const express = require("express");
 const http = require("http");
-const socketIo = require("socket.io");
 const errorHandlor = require("./middleware/errorHandler");
 const connectDb = require("./config/dbConnection");
 const dotenv = require("dotenv").config();
@@ -26,22 +25,18 @@ const {
  */
 const app = express();
 const server = http.createServer(app);
-// chat socket included
-const configureSockets = require("./sockets/chatSocket"); // Replace with the actual path
-configureSockets(server);
-//
-const io = socketIo(server);
+// socket included
+const { initializeSocket } = require('./sockets/Socket');
+const io = initializeSocket(server); // Initialize socket with the server
 
-
+io.on('connection', (socket) => {
+  console.log('a user connected');
+  socket.on('disconnect', () => {
+    console.log('user disconnected');
+  });
+});
 app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io/client-dist'));
 
-
-/**
- * Set the port for the server
- *
- * @example
- * process.env.PORT = 5000;
- */
 connectDb();
 
 /**
@@ -128,14 +123,10 @@ app.use("/auth", require("./routes/auth"));
 
 app.use("/api/users", require("./routes/userRoutes"));
 app.use("/", require("./routes/webhook"));
-// app.use(errorHandlor);
+
 app.get("/sync-mails", validateToken, syncmails);
 
 app.get("/refresh-token", validateToken, refreshToken);
-// app.use(
-//   "/socket.io",
-//   express.static(__dirname + "/node_modules/socket.io/client-dist")
-// );
 
 
 // Schedule the cron job to run every hour

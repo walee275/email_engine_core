@@ -132,7 +132,6 @@ const getUserInboxMails = asyncHandler(async (req, res) => {
     }
 
     const emails = await Email.find({ user_id: user.id, mailbox_id: mailbox._id });
-
     // res.render("mail", { emails: emails, type: 'Inbox' });
     res.status(200).json({ emails: emails });
   } catch (error) {

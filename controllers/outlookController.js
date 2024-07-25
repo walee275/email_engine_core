@@ -4,14 +4,12 @@ const User = require("../models/userModel");
 const Mailbox = require("../models/mailboxModel");
 const Email = require("../models/emailModel");
 const { access } = require("fs");
-const socketIo = require("socket.io");
+const { getIo } = require("../sockets/Socket.js"); // Import the getIo function
 require("../server.js");
 
 // Example handler for handling notifications from Microsoft Graph API
 const handleGraphNotification = async (msalClient, userId, notification) => {
   console.log("Notification user:", userId);
-
-  socketIo.emit("newMailRecieved");
 
   const { changeType, resource, resourceData } = notification;
 
@@ -132,7 +130,9 @@ const syncmails = asyncHandler(async (req, res) => {
       req.user.id
     );
 
-    res.status(200).send({ message: "Emails synchronized successfully", success:true });
+    res
+      .status(200)
+      .send({ message: "Emails synchronized successfully", success: true });
   } catch (e) {
     console.error("Failed to acquire token or synchronize emails: ", e);
     res.status(500).send({ error: "Something went wrong" });
@@ -261,6 +261,7 @@ async function createEmails(emails = [], mailboxId = null, userId = null) {
   try {
     console.log("mailboxId: ", mailboxId);
     console.log("userId: ", userId);
+    const io = getIo();
 
     if (!mailboxId || !userId) {
       throw new Error("Invalid mailbox or user ID");
@@ -320,6 +321,7 @@ async function createEmails(emails = [], mailboxId = null, userId = null) {
         await newEmail.save();
       }
     }
+    io.emit("newMailRecieved");
 
     return true;
   } catch (e) {
